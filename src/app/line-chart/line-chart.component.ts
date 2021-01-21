@@ -16,51 +16,101 @@ export class LineChartComponent implements OnInit {
     private height: number;
     private svg: any;
     private dynamicDataSet: any;
-    private selectedDate:any;
+    private selectedFromDate:any;
+    private selectedToDate:any;
+    private chartType:any = "line";
 
     constructor() { 
 
       this.width = 960 - this.margin.left - this.margin.right;
       this.height = 500 - this.margin.top - this.margin.bottom;
-      this.selectedDate = new Date();
     }
 
     ngOnInit(): void {
       
-      this.buildSvg();
       this.initData();
+
     }
 
+    selectChart(e) {
+      
+      if(e.target.value!==this.chartType) {
+        this.chartType = e.target.value;
+        this.initData();
+      }
+    }
+
+
     private initData() {
+
+      d3.selectAll("#slider-range").selectChildren().remove();
+      d3.selectAll("svg > *").remove();
+
+      if(this.chartType == "line")  {
+
+        d3.json('/assets/data.json')
+          .then((data) => this.buildLineGraph(data))
+          .catch(function(error) {
+            console.log(error);
+            // Do some error handling.
+          });
+      }
+
+      if(this.chartType == "bubble")  {
         
-      d3.json('/assets/data.json')
-      .then((data) => this.buildGraph(data))
-      .catch(function(error) {
-        console.log(error);
-        // Do some error handling.
-      });
+        d3.json('/assets/data.json')
+          .then((data) => this.buildBubbleGraph(data))
+          .catch(function(error) {
+            console.log(error);
+            // Do some error handling.
+          });
+      }
+
+
     }
 
     private buildSvg() {
-      console.log('building svg');
-
-      this.svg = d3.select('svg') // svg element from html
-        .append('g')   // appends 'g' element for graph design
-        .attr('transform', 'translate(' + this.margin.left + ',' + this.margin.top + ')');
+      this.svg = d3.select('#lineGraph')
+        .append('g')  
     }
 
     private checkDate(data) {
 
       if(data) {
-        if(this.selectedDate) {
-          if(data.date?.getTime() > this.selectedDate.getTime()) {
+        if(this.selectedFromDate && this.selectedToDate) {
+          if(data.date?.getTime() > this.selectedFromDate.getTime()
+          && data.date?.getTime() < this.selectedToDate.getTime()) {
             return data;
           }
-        }        
+        } else {
+          console.log('issue with date');
+        }       
       } 
     }
-    private buildGraph(jsonData) {
 
+    private buildBubbleGraph(jsonData) {
+
+      var parseDate = d3.timeParse("%Y-%m");
+      
+      var dataSet = jsonData;
+
+      dataSet.forEach(function(d) {
+        d.date = parseDate(d.date)
+        d.amount = +d.amount
+      });
+      
+      dataSet.sort(function(a,b){
+        return b.date - a.date;
+      });
+
+      this.createRangeSlider(dataSet);
+
+    }
+
+    private buildLineGraph(jsonData) {
+      
+      this.buildSvg();
+    
       // ********************************* Parse Data
 
       var parseDate = d3.timeParse("%Y-%m");
@@ -75,6 +125,8 @@ export class LineChartComponent implements OnInit {
       dataSet.sort(function(a,b){
         return b.date - a.date;
       });
+
+      this.createRangeSlider(dataSet);
 
       this.dynamicDataSet = dataSet;
 
@@ -151,29 +203,6 @@ export class LineChartComponent implements OnInit {
       return yScale(d['amount']/1000);
     })
 
-      // *********************************  Range Slider
-      var sliderRange =  sliderBottom()
-      .domain(d3.extent(this.dynamicDataSet, function(d:any) { return new Date(d.date); }))
-      .width(800)
-      .tickFormat(d3.utcFormat("%b-%Y"))
-      .ticks(10)
-      .fill('#2196f3')
-      .on('onchange', val => {
-        //this.selectedDate = d3.select('p#value-range').text(d3.timeFormat('%b-%Y')(val));
-        this.selectedDate = val;
-        this.updateData(this.dynamicDataSet);
-      });
-
-    var gRange = d3
-      .select('div#slider-range')
-      .append('svg')
-      .attr('width', 1000)
-      .attr('height', 100)
-      .append('g')
-      .attr('transform', 'translate(30,30)');
-
-    gRange.call(sliderRange);
-
   }
 
   // gridlines in x axis function
@@ -184,6 +213,41 @@ export class LineChartComponent implements OnInit {
   make_y_gridlines(y) {
     return d3.axisLeft(y).ticks(5)
   }  
+
+  private createRangeSlider(data) {
+
+      // *********************************  Range Slider
+      var minVal = d3.min(d3.extent(data, function(d:any) { return new Date(d.date); }));
+      var maxVal = d3.max(d3.extent(data, function(d:any) { return new Date(d.date); }));
+
+      var sliderRange =  sliderBottom()
+      .domain(d3.extent(data, function(d:any) { return new Date(d.date); }))
+      // .min(minVal)
+      // .max(maxVal)
+      .width(800)
+      .tickFormat(d3.utcFormat("%b-%Y"))
+      .ticks(10)
+      .fill('#2196f3')
+      .default([minVal, maxVal])
+      .on('onchange', val => {
+        //this.selectedDate = d3.select('p#value-range').text(d3.timeFormat('%b-%Y')(val));
+        this.selectedFromDate = new Date(val[0]);
+        this.selectedToDate = new Date(val[1]);
+        console.log(this.selectedFromDate);
+        console.log(this.selectedToDate );
+        this.updateData(data);
+      });
+
+    var gRange = d3
+      .select('div#slider-range')
+      .append('svg')
+      .attr('width', 1000)
+      .attr('height', 100)
+      .append('g')
+      .attr('transform', 'translate(30,30)');
+
+      gRange.call(sliderRange);
+  }
 
   // ** Update data section (Called from the onclick)
   private updateData(data) {
