@@ -142,29 +142,29 @@ export class LineChartComponent implements OnInit {
         .style("fill", "red")
         .attr("r", 50)
         .attr("cx", xScale(percentageIncrease))
-        .attr("cy", 300);
+        .attr("cy", 50);
 
         this.svg.append("text")
-         .style("font-size", "14px")
+         .style("font-size", "16px")
+         .style("font-family", "Arial, Helvetica, sans-serif")
          .style("color", "#ffffff")
          .attr("text-anchor","middle")
          .attr("stroke","white")
          .attr("x", xScale(percentageIncrease))
-         .attr("y", 300)
+         .attr("y", 50)
          .text(percentageIncrease + "%");
          
          this.svg.append("path")
          .attr("d", d3.symbol(d3.symbolTriangle))
          .style("fill", "#ffffff")
-         .attr("transform", "translate("+xScale(Number(percentageIncrease))+",320)")
+         .attr("transform", "translate("+xScale(Number(percentageIncrease))+",70)")
           .attr('x', function(d) {
              return xScale(percentageIncrease);
-           })
-          .attr('y', 300)
+           });
 
           var rect = this.svg.append("rect")
           .attr("x", 50)
-          .attr("y", 250)
+          .attr("y", 0)
           .attr("height", 100)
           .attr("width", 800)
           .attr("fill", "#999999")
@@ -175,9 +175,9 @@ export class LineChartComponent implements OnInit {
           .style("stroke-width", 1)
           .attr("opacity","0.3")
           .attr("x1", 100)
-          .attr("y1", 300)
+          .attr("y1", 50)
           .attr("x2", 800)
-          .attr("y2", 300);           
+          .attr("y2", 50);
 
           this.svg.append('line')
           .style("stroke", "#666666")
@@ -185,9 +185,9 @@ export class LineChartComponent implements OnInit {
           .style("stroke-dasharray","5,5")
           .attr("opacity","0.3")
           .attr("x1", 400)
-          .attr("y1", 250)
+          .attr("y1", 0)
           .attr("x2", 400)
-          .attr("y2", 350);               
+          .attr("y2", 100);               
 
           this.svg.selectAll("g").append(circle);
 
@@ -310,7 +310,7 @@ export class LineChartComponent implements OnInit {
       // .max(maxVal)
       .width(800)
       .tickFormat(d3.utcFormat("%b-%Y"))
-      .fill('#2196f3')
+      .fill('#ffff00')
       .default([minVal, maxVal])
       .on('onchange', val => {
         this.selectedFromDate = new Date(val[0]);
@@ -449,7 +449,7 @@ export class LineChartComponent implements OnInit {
         .transition()
         .attr("d", d3.symbol(d3.symbolTriangle))
         .style("color", "#ffffff")
-        .attr("transform", "translate("+xScale(Number(percentageIncrease))+",320)")
+        .attr("transform", "translate("+xScale(Number(percentageIncrease))+",70)")
         .attr('x', function(d) {
             return xScale(percentageIncrease);
           })
