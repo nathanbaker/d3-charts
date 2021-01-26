@@ -15,7 +15,6 @@ export class LineChartComponent implements OnInit {
     private width: number;
     private height: number;
     private svg: any;
-    private dynamicDataSet: any;
     private selectedFromDate:any;
     private selectedToDate:any;
     private chartType:any = "line";
@@ -215,17 +214,22 @@ export class LineChartComponent implements OnInit {
 
       this.createRangeSlider(dataSet);
 
-      this.dynamicDataSet = dataSet;
-
       // ********************************* X-Y Axis
     
       var xScale = d3.scaleTime().range([0, this.width]);
-      var yScale = d3.scaleLinear().range([this.height, 0]);      
+      var yScale = d3.scaleLinear().range([this.height, this.margin.top]);      
 
-      xScale.domain(d3.extent(this.dynamicDataSet, function(d:any) { return new Date(d.date); }));
-      yScale.domain([0, d3.max(this.dynamicDataSet, function(d) { return (d['amount']/1000); })]);
+      xScale.domain(d3.extent(dataSet, function(d:any) { return new Date(d.date); }));
+      yScale.domain([0, d3.max(dataSet, function(d) { return (d['amount']/1000); })]);
 
-      // ********************************* Grid Lines
+    // ********************************* Grid Lines
+
+    var clipPath = this.svg.append("g")
+    .append("clipPath")
+    .attr("id", "clip")
+    .append("rect")
+    .attr("width", this.width)
+    .attr("height", this.height);    
 
     // add the X gridlines
     this.svg.append("g")			
@@ -235,8 +239,8 @@ export class LineChartComponent implements OnInit {
         .attr("stroke", "#dddddd")
         .attr("stroke-width", 0.5)
         .call(this.make_x_gridlines(xScale) 
-            .ticks(8)
-            //.tickSize(-this.height)
+            .ticks(dataSet.length)
+            .tickSize(-this.height)
             .tickFormat(d3.timeFormat("%m/%y"))
         )
 
@@ -249,7 +253,7 @@ export class LineChartComponent implements OnInit {
         .attr("stroke-width", 0.5)              
         .call(this.make_y_gridlines(yScale)
             .ticks(10)
-            .tickSize(-this.width-this.margin.left)
+            .tickSize(-this.width)
             .tickFormat(d3.format("$,"))
         )
 
@@ -259,16 +263,19 @@ export class LineChartComponent implements OnInit {
       .x(function(d) { return  xScale(d['date']);  })
       .y0(this.height)
       .y1(function(d) { return yScale(d['amount']/1000);  });
-      //.curve(d3.curveCardinal);
 
-      this.svg.append('path')
+      this.svg.append('path')      
       .data([dataSet])   
+      .attr('width',this.svg.select(".x-grid").node().getBBox().hieght)
+      .attr('hieght',this.svg.select(".x-grid").node().getBBox().hieght)
       .attr("stroke", "#6495ED")
       .attr("stroke-width", 2)
       .attr("fill-opacity", .3)
       .attr("fill", "#33D8FF")
       .attr("class", "area")
-      .attr("d", area) ;
+      .attr("d", area)
+      .attr("clip-path", "url(#clip)");
+
 
     // ********************************* Dot Points
 
@@ -285,17 +292,19 @@ export class LineChartComponent implements OnInit {
     .attr('cy', function(d) {
       return yScale(d['amount']/1000);
     })
+    .attr("clip-path", "url(#clip)");
+
 
   }
 
   // gridlines in x axis function
   make_x_gridlines(x) {
-    return d3.axisBottom(x).ticks(8)
+    return d3.axisBottom(x)
 
   }
     // gridlines in y axis function
   make_y_gridlines(y) {
-    return d3.axisLeft(y).ticks(5)
+    return d3.axisLeft(y)
   }  
 
   private createRangeSlider(data) {
@@ -339,11 +348,11 @@ export class LineChartComponent implements OnInit {
   // ** Update data section (Called from the onclick)
   private updateLineData(data) {
 
-    var duration = 250;
+    var duration = 500;
 
     var dataSet = data.filter((x) => this.checkDate(x));
 
-    var xScale = d3.scaleTime().range([0, this.width]);
+    var xScale = d3.scaleTime().range([0,this.width])
     var yScale = d3.scaleLinear().range([this.height, 0]);      
 
     xScale.domain(d3.extent(dataSet, function(d:any) { return new Date(d.date); }));
@@ -354,20 +363,21 @@ export class LineChartComponent implements OnInit {
         // Update Grid Lines
         this.svg.select(".x-grid")
         .transition()
+        .duration(duration)
         .call(this.make_x_gridlines(xScale) 
-          .ticks(8)
-          .tickSize(-this.height)
-          .tickFormat(d3.timeFormat("%m/%y"))
+           .ticks(dataSet.length)
+           .tickSize(-this.height)
+           .tickFormat(d3.timeFormat("%m/%y"))
         )
 
         // add the Y gridlines
         this.svg.select(".y-grid")
         .transition()
         .duration(duration)
-        .call(this.make_y_gridlines(yScale)
-            .ticks(10)
-            .tickSize(-this.width-this.margin.left)
-            .tickFormat(d3.format("$,"))
+         .call(this.make_y_gridlines(yScale)
+             .ticks(10)
+             .tickSize(-this.width)
+             .tickFormat(d3.format("$,"))
         )
 
 
@@ -377,11 +387,11 @@ export class LineChartComponent implements OnInit {
         .y0(this.height) 
         .y1(function(d) { return yScale(d['amount']/1000);  });      
 
-          
         this.svg.selectAll('.area')
         .attr('class', 'area')
         .transition().duration(duration)
         .attr('d', area);
+
 
         // *********************   Update Dots
 
